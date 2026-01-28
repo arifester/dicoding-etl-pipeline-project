@@ -1,0 +1,15 @@
+# Virtual Environment
+.venv/
+
+# Python bytecode and cache
+__pycache__/
+*.pyc
+
+# OS metadata (Mac)
+.DS_Store
+
+# IDE settings
+.vscode/
+
+# Secrets and Credentials
+google-sheets-api.json
