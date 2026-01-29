@@ -1,68 +1,56 @@
 import pandas as pd
-
-def clean_currency(price_str):
-    """
-    Cleans price string, removes symbols, and converts to float.
-    Returns None if price is unavailable or invalid.
-    """
-    if pd.isna(price_str) or "Unavailable" in str(price_str):
-        return None
-    
-    clean_str = str(price_str).replace("$", "").replace(",", "").strip()
-    try:
-        return float(clean_str)
-    except ValueError:
-        return None
+import re
 
 def transform_data(data):
     """
-    Transforms raw list of dictionaries into a cleaned Pandas DataFrame.
-    Applies filtering, type conversion, and currency exchange.
+    Transforms raw data using regex for robust extraction.
+    Cleans Price, Rating, Colors, Size, and Gender columns.
     """
     try:
         if not data:
-            print("No data to transform.")
+            print("No data received in transform_data.")
             return pd.DataFrame()
 
         df = pd.DataFrame(data)
+        print(f"Initial data count: {len(df)}")
 
-        # Filter out invalid Titles (Unknown Product)
-        df = df[df['Title'] != "Unknown Product"]
-
-        # Clean and Transform Price
-        # Convert to float first, handling 'Price Unavailable'
-        df['Price'] = df['Price'].apply(clean_currency)
+        # Filter Title (Remove Unknown Product)
+        if 'Title' in df.columns:
+            df = df[df['Title'] != "Unknown Product"]
+            df = df.dropna(subset=['Title'])
         
-        # Drop rows where Price is NaN (was Unavailable or None)
+        # Clean Price
+        # Remove '$' and ',' then extract numeric part
+        df['Price'] = df['Price'].astype(str).str.replace(r'[$,]', '', regex=True)
+        df['Price'] = df['Price'].str.extract(r'(\d+\.?\d*)')
+        df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
+        
+        # Drop rows with invalid price
         df = df.dropna(subset=['Price'])
         
         # Convert USD to IDR (Exchange rate: 16,000)
         df['Price'] = df['Price'] * 16000
 
         # Clean Rating
-        # Remove " / 5", handle "Invalid Rating" or "Not Rated"
-        # Coerce errors to NaN, then drop them
-        df['Rating'] = df['Rating'].astype(str).str.replace(" / 5", "", regex=False)
+        # Extract numeric value from string (e.g., "Rating: 3.5 / 5" -> 3.5)
+        df['Rating'] = df['Rating'].astype(str).str.extract(r'(\d+\.?\d*)')
         df['Rating'] = pd.to_numeric(df['Rating'], errors='coerce')
 
         # Clean Colors
-        # Remove " Colors" text, keep only digits
-        df['Colors'] = df['Colors'].astype(str).str.replace(" Colors", "", regex=False)
+        # Extract digits only (e.g., "3 Colors" -> 3)
+        df['Colors'] = df['Colors'].astype(str).str.extract(r'(\d+)')
         df['Colors'] = pd.to_numeric(df['Colors'], errors='coerce')
 
-        # Clean Size and Gender
-        # Remove prefixes "Size: " and "Gender: "
-        df['Size'] = df['Size'].astype(str).str.replace("Size: ", "", regex=False)
-        df['Gender'] = df['Gender'].astype(str).str.replace("Gender: ", "", regex=False)
+        # Clean Size & Gender
+        # Remove prefixes like "Size: " and "Gender: "
+        df['Size'] = df['Size'].astype(str).str.replace(r'Size:\s*', '', regex=True)
+        df['Gender'] = df['Gender'].astype(str).str.replace(r'Gender:\s*', '', regex=True)
 
         # Final Cleaning
-        # Drop any remaining rows with NaN values
         df = df.dropna()
-        
-        # Drop duplicates
         df = df.drop_duplicates()
 
-        # Enforce Data Types (Final Check)
+        # Set Data Types
         df = df.astype({
             'Title': 'object',
             'Price': 'float64',
@@ -73,10 +61,9 @@ def transform_data(data):
             'Timestamp': 'object'
         })
 
-        print(f"Transformation complete. Data shape: {df.shape}")
+        print(f"Transformation complete. Final data shape: {df.shape}")
         return df
 
     except Exception as e:
         print(f"Error during transformation: {e}")
         return pd.DataFrame()
-    
