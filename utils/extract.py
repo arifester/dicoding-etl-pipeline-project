@@ -26,7 +26,6 @@ def parse_product_card(card):
         title_elem = card.find("h3", class_="product-title")
         title = title_elem.text.strip() if title_elem else None
 
-        # Extract Price
         # Attempt to find price in 'span' (standard) first, then 'p' (unavailable/different format)
         price_elem = card.find("span", class_="price")
         if not price_elem:
@@ -54,7 +53,7 @@ def parse_product_card(card):
             elif "Gender" in text:
                 gender = text
 
-        # Add Timestamp (Required for Advanced Criteria)
+        # Add Timestamp
         timestamp = datetime.now().isoformat()
 
         return {
@@ -74,12 +73,17 @@ def parse_product_card(card):
 def scrape_all_pages(start_page=1, end_page=50):
     """
     Iterates through pages to scrape all product data.
+    Fixes URL construction to ensure pagination works correctly.
     """
     all_products = []
     print(f"Starting scraping process from page {start_page} to {end_page}...")
 
     for page in range(start_page, end_page + 1):
-        url = f"{BASE_URL}/?page={page}"
+        if page == 1:
+            url = BASE_URL
+        else:
+            url = f"{BASE_URL}/page{page}"
+            
         print(f"Scraping page {page}...", end="\r")
         
         html = get_html_content(url)
@@ -101,7 +105,6 @@ def scrape_all_pages(start_page=1, end_page=50):
     return all_products
 
 if __name__ == "__main__":
-    # Test run for a single page
-    data = scrape_all_pages(start_page=1, end_page=1)
-    if data:
-        print(data[0])
+    # Test run
+    data = scrape_all_pages(start_page=1, end_page=2)
+    print(f"Test run captured {len(data)} items")
