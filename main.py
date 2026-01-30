@@ -1,5 +1,5 @@
 import os
-from dotenv import load_dotenv  # Import library ini
+from dotenv import load_dotenv
 from utils.extract import scrape_all_pages
 from utils.transform import transform_data
 from utils.load import load_data
@@ -37,6 +37,8 @@ def main():
     load_data(clean_df, db_url=DATABASE_URL, sheet_id=SPREADSHEET_ID)
 
     print("ETL Pipeline finished successfully.")
+
+    print(clean_df.info())
 
 if __name__ == "__main__":
     main()
